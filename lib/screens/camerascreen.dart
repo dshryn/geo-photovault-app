@@ -46,7 +46,7 @@ class _CameraScreenState extends State<CameraScreen> {
       final watermarkedImage =
           await _addWatermark(File(image.path), city, state, position);
 
-      // await _saveImageToFolder(watermarkedImage, city);
+      await _saveImageToFolder(watermarkedImage, city);
 
       setState(() {
         _isProcessing = false;
@@ -86,16 +86,16 @@ class _CameraScreenState extends State<CameraScreen> {
     return File(watermarkedPath);
   }
 
-  // Future<void> _saveImageToFolder(File image, String city) async {
-  //   final directory = await getExternalStorageDirectory();
-  //   final cityFolder = Directory('${directory!.path}/$city');
-  //   if (!cityFolder.existsSync()) {
-  //     cityFolder.createSync(recursive: true);
-  //   }
-  //   final filePath =
-  //       '${cityFolder.path}/${DateTime.now().toIso8601String()}.png';
-  //   image.copySync(filePath);
-  // }
+  Future<void> _saveImageToFolder(File image, String city) async {
+    final directory = await getExternalStorageDirectory();
+    final cityFolder = Directory('${directory!.path}/$city');
+    if (!cityFolder.existsSync()) {
+      cityFolder.createSync(recursive: true);
+    }
+    final filePath =
+        '${cityFolder.path}/${DateTime.now().toIso8601String()}.png';
+    image.copySync(filePath);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +109,7 @@ class _CameraScreenState extends State<CameraScreen> {
             : ElevatedButton.icon(
                 onPressed: _captureAndSave,
                 icon: const Icon(Icons.camera_alt),
-                label: const Text('Capture Image'),
+                label: const Text('Capture'),
               ),
       ),
     );
