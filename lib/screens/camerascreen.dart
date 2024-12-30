@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
+import 'package:flutter/services.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -23,7 +24,7 @@ class _CameraScreenState extends State<CameraScreen> {
         _isProcessing = true;
       });
 
-      // capture
+      // take pic
       final XFile? image = await _picker.pickImage(source: ImageSource.camera);
       if (image == null) {
         setState(() {
@@ -46,15 +47,21 @@ class _CameraScreenState extends State<CameraScreen> {
       final watermarkedImage =
           await _addWatermark(File(image.path), city, state, position);
 
-      await _saveImageToFolder(watermarkedImage, city);
+      final savedPath = await _saveImageToFolder(watermarkedImage, city);
 
       setState(() {
         _isProcessing = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Image saved in $city folder')),
+        SnackBar(
+            content: Text(
+          'Image saved in $savedPath',
+        )),
       );
+
+      // update gallery screen
+      Navigator.of(context).pop(savedPath);
     } catch (e) {
       setState(() {
         _isProcessing = false;
@@ -67,7 +74,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<File> _addWatermark(
       File imageFile, String city, String state, Position position) async {
-    img.Image? image = img.decodeImage(imageFile.readAsBytesSync()); //load
+    img.Image? image = img.decodeImage(imageFile.readAsBytesSync());
     if (image == null) {
       throw Exception("Unable to decode image");
     }
@@ -86,15 +93,25 @@ class _CameraScreenState extends State<CameraScreen> {
     return File(watermarkedPath);
   }
 
-  Future<void> _saveImageToFolder(File image, String city) async {
+  Future<String> _saveImageToFolder(File image, String city) async {
     final directory = await getExternalStorageDirectory();
-    final cityFolder = Directory('${directory!.path}/$city');
+    final cityFolder = Directory('${directory!.path}/GeoTagPhotos/$city');
     if (!cityFolder.existsSync()) {
       cityFolder.createSync(recursive: true);
     }
     final filePath =
         '${cityFolder.path}/${DateTime.now().toIso8601String()}.png';
     image.copySync(filePath);
+
+    // refresh gallery
+    try {
+      const MethodChannel('com.example.geotag/gallery')
+          .invokeMethod('refreshGallery', filePath);
+    } catch (e) {
+      print("Error refreshing gallery: $e");
+    }
+
+    return filePath;
   }
 
   @override

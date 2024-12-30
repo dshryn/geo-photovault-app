@@ -35,11 +35,11 @@ class HomeScreen extends StatelessWidget {
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
                 children: [
-                  xCard(context, icon: Icons.camera_alt, label: 'Take Photo',
+                  Custom(context, icon: Icons.camera_alt, label: 'Take Photo',
                       onTap: () {
                     Navigator.pushNamed(context, '/camera');
                   }),
-                  xCard(
+                  Custom(
                     context,
                     icon: Icons.photo_library,
                     label: 'Gallery',
@@ -47,7 +47,7 @@ class HomeScreen extends StatelessWidget {
                       Navigator.pushNamed(context, '/gallery');
                     },
                   ),
-                  xCard(
+                  Custom(
                     context,
                     icon: Icons.map,
                     label: 'Map View',
@@ -55,7 +55,7 @@ class HomeScreen extends StatelessWidget {
                       Navigator.pushNamed(context, '/map');
                     },
                   ),
-                  xCard(
+                  Custom(
                     context,
                     icon: Icons.settings,
                     label: 'Settings',
@@ -72,7 +72,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget xCard(BuildContext context,
+  Widget Custom(BuildContext context,
       {required IconData icon,
       required String label,
       required VoidCallback onTap}) {

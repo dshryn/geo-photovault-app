@@ -4,9 +4,32 @@ import 'package:geotag/screens/galleryscreen.dart';
 import 'package:geotag/screens/homescreen.dart';
 import 'package:geotag/screens/mapscreen.dart';
 import 'package:geotag/screens/settingscreen.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await _requestPermissions();
   runApp(const GeoTagApp());
+}
+
+Future<void> _requestPermissions() async {
+  if (await Permission.camera.isDenied) {
+    await Permission.camera.request();
+  }
+
+  if (await Permission.location.isDenied) {
+    await Permission.location.request();
+  }
+
+  if (await Permission.storage.isDenied) {
+    await Permission.storage.request();
+  }
+
+  if (await Permission.camera.isPermanentlyDenied ||
+      await Permission.location.isPermanentlyDenied ||
+      await Permission.storage.isPermanentlyDenied) {
+    openAppSettings();
+  }
 }
 
 class GeoTagApp extends StatelessWidget {
@@ -17,7 +40,7 @@ class GeoTagApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'GeoTag Cam',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(primarySwatch: Colors.green),
       initialRoute: '/',
       routes: {
         '/': (context) => const HomeScreen(),

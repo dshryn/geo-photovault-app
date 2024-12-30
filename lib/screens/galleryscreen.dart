@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:geotag/screens/camerascreen.dart';
 
 class GalleryScreen extends StatefulWidget {
   const GalleryScreen({super.key});
@@ -17,34 +21,41 @@ class _GalleryScreenState extends State<GalleryScreen> {
   @override
   void initState() {
     super.initState();
-
-    //sample
-    photos = [
-      {
-        'path': 'assets/images/vellore.webp',
-        'location': 'Vellore, TN',
-        'date': DateTime(2024, 12, 15),
-      },
-      {
-        'path': 'assets/images/pune.webp',
-        'location': 'Pune, MH',
-        'date': DateTime(2024, 12, 16),
-      },
-      {
-        'path': 'assets/images/kolkata.webp',
-        'location': 'Kolkata, WB',
-        'date': DateTime(2024, 12, 17),
-      },
-      {
-        'path': 'assets/images/pune2.jpeg',
-        'location': 'Pune, MH',
-        'date': DateTime(2024, 12, 21),
-      },
-    ];
-    filteredPhotos = List.from(photos);
+    loadImages();
   }
 
-  // filter
+  Future<void> loadImages() async {
+    try {
+      final Directory? appDir = await getExternalStorageDirectory();
+      if (appDir != null) {
+        final List<FileSystemEntity> entities =
+            appDir.listSync(recursive: true);
+
+        final List<File> images = entities
+            .whereType<File>()
+            .where((file) => file.path.endsWith('.png'))
+            .toList();
+
+        setState(() {
+          photos = images.map((image) {
+            final String fileName = image.path.split('/').last;
+            final String city = image.parent.path.split('/').last;
+
+            return {
+              'path': image.path,
+              'location': city,
+              'date': File(image.path).lastModifiedSync(),
+            };
+          }).toList();
+
+          filteredPhotos = List.from(photos);
+        });
+      }
+    } catch (e) {
+      print('Error loading images: $e');
+    }
+  }
+
   void filterPhotos() {
     setState(() {
       filteredPhotos = photos.where((photo) {
@@ -61,30 +72,83 @@ class _GalleryScreenState extends State<GalleryScreen> {
     });
   }
 
-  // Widget buildFilterDropdown() {
-  //   final locations = ['All'] +
-  //       photos.map((photo) => photo['location'].toString()).toSet().toList();
+  Future<void> navigateToCamera() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CameraScreen(),
+      ),
+    );
 
-  //   return DropdownButton<String>(
-  //     value: selectedFilter,
-  //     items: locations
-  //         .map((location) => DropdownMenuItem<String>(
-  //               value: location,
-  //               child: Text(location),
-  //             ))
-  //         .toList(),
-  //     onChanged: (value) {
-  //       if (value != null) {
-  //         setState(() {
-  //           selectedFilter = value;
-  //         });
-  //         filterPhotos();
-  //       }
-  //     },
-  //   );
-  // }
+    if (result != null && result is Map<String, dynamic>) {
+      setState(() {
+        photos.add(result);
+        filterPhotos();
+      });
+    }
+  }
 
-  Widget buildPhotoGrid() {
+  void showSearchDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        String tempSearchQuery = searchQuery;
+        return AlertDialog(
+          title: const Text('Search Photos'),
+          content: TextField(
+            onChanged: (value) {
+              tempSearchQuery = value;
+            },
+            decoration:
+                const InputDecoration(hintText: 'Enter location or date'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  searchQuery = tempSearchQuery;
+                });
+                filterPhotos();
+                Navigator.pop(context);
+              },
+              child: const Text('Search'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget filterDropdown() {
+    final locations = ['All'] +
+        photos.map((photo) => photo['location'].toString()).toSet().toList();
+
+    return DropdownButton<String>(
+      value: selectedFilter,
+      items: locations
+          .map((location) => DropdownMenuItem<String>(
+                value: location,
+                child: Text(location),
+              ))
+          .toList(),
+      onChanged: (value) {
+        if (value != null) {
+          setState(() {
+            selectedFilter = value;
+          });
+          filterPhotos();
+        }
+      },
+    );
+  }
+
+  Widget makePhotoGrid() {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -97,7 +161,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
         final photo = filteredPhotos[index];
         return GestureDetector(
           onTap: () {
-            // opne map
+            // open map of that loc
           },
           child: Card(
             clipBehavior: Clip.antiAlias,
@@ -105,8 +169,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: Image.asset(
-                    photo['path'],
+                  child: Image.file(
+                    File(photo['path']),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -147,23 +211,27 @@ class _GalleryScreenState extends State<GalleryScreen> {
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              // search
+              showSearchDialog();
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.camera_alt),
+            onPressed: navigateToCamera,
           ),
         ],
       ),
       body: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.all(15.0),
+          Padding(
+            padding: const EdgeInsets.all(15.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'Filter by:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
-                // buildFilterDropdown(),
+                filterDropdown(),
               ],
             ),
           ),
@@ -172,7 +240,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 ? const Center(
                     child: Text('No photos found'),
                   )
-                : buildPhotoGrid(),
+                : makePhotoGrid(),
           ),
         ],
       ),
