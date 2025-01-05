@@ -8,46 +8,86 @@ import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _requestPermissions();
   runApp(const GeoTagApp());
 }
 
-Future<void> _requestPermissions() async {
-  if (await Permission.camera.isDenied) {
-    await Permission.camera.request();
-  }
+class GeoTagApp extends StatefulWidget {
+  const GeoTagApp({super.key});
 
-  if (await Permission.location.isDenied) {
-    await Permission.location.request();
-  }
-
-  if (await Permission.storage.isDenied) {
-    await Permission.storage.request();
-  }
-
-  if (await Permission.camera.isPermanentlyDenied ||
-      await Permission.location.isPermanentlyDenied ||
-      await Permission.storage.isPermanentlyDenied) {
-    openAppSettings();
-  }
+  @override
+  State<GeoTagApp> createState() => _GeoTagAppState();
 }
 
-class GeoTagApp extends StatelessWidget {
-  const GeoTagApp({super.key});
+class _GeoTagAppState extends State<GeoTagApp> {
+  bool isDarkMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestPermissionsAtStartup();
+  }
+
+  Future<void> _requestPermissionsAtStartup() async {
+    final PermissionStatus cameraPermission = await Permission.camera.request();
+    final PermissionStatus locationPermission =
+        await Permission.location.request();
+    final PermissionStatus storagePermission =
+        await Permission.storage.request();
+
+    if (cameraPermission.isDenied ||
+        locationPermission.isDenied ||
+        storagePermission.isDenied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Some permissions were denied')),
+      );
+    }
+
+    if (cameraPermission.isPermanentlyDenied ||
+        locationPermission.isPermanentlyDenied ||
+        storagePermission.isPermanentlyDenied) {
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Permissions Required'),
+          content: const Text(
+              'Some permissions are permanently denied. Please enable them in app settings to continue.'),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await openAppSettings();
+              },
+              child: const Text('Open Settings'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void updateTheme(bool isDark) {
+    setState(() {
+      isDarkMode = isDark;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'GeoTag Cam',
-      theme: ThemeData(primarySwatch: Colors.green),
+      theme:
+          ThemeData(primarySwatch: Colors.green, brightness: Brightness.light),
+      darkTheme:
+          ThemeData(primarySwatch: Colors.green, brightness: Brightness.dark),
+      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
       initialRoute: '/',
       routes: {
         '/': (context) => const HomeScreen(),
         '/camera': (context) => const CameraScreen(),
         '/gallery': (context) => const GalleryScreen(),
         '/map': (context) => const MapScreen(),
-        '/settings': (context) => const SettingScreen(),
+        '/settings': (context) => SettingScreen(onThemeChanged: updateTheme),
       },
     );
   }

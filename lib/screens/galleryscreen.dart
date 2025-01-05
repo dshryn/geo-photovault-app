@@ -1,9 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:geotag/screens/camerascreen.dart';
 
 class GalleryScreen extends StatefulWidget {
   const GalleryScreen({super.key});
@@ -33,21 +31,24 @@ class _GalleryScreenState extends State<GalleryScreen> {
 
         final List<File> images = entities
             .whereType<File>()
-            .where((file) => file.path.endsWith('.png'))
+            .where((file) =>
+                file.path.endsWith('.png') || file.path.endsWith('.jpg'))
             .toList();
 
+        List<Map<String, dynamic>> photoList = [];
+
+        for (File image in images) {
+          final cityName = image.parent.path.split('/').last;
+
+          photoList.add({
+            'path': image.path,
+            'location': cityName,
+            'date': File(image.path).lastModifiedSync(),
+          });
+        }
+
         setState(() {
-          photos = images.map((image) {
-            final String fileName = image.path.split('/').last;
-            final String city = image.parent.path.split('/').last;
-
-            return {
-              'path': image.path,
-              'location': city,
-              'date': File(image.path).lastModifiedSync(),
-            };
-          }).toList();
-
+          photos = photoList;
           filteredPhotos = List.from(photos);
         });
       }
@@ -70,59 +71,6 @@ class _GalleryScreenState extends State<GalleryScreen> {
         return matchesSearch && photo['location'] == selectedFilter;
       }).toList();
     });
-  }
-
-  Future<void> navigateToCamera() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const CameraScreen(),
-      ),
-    );
-
-    if (result != null && result is Map<String, dynamic>) {
-      setState(() {
-        photos.add(result);
-        filterPhotos();
-      });
-    }
-  }
-
-  void showSearchDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        String tempSearchQuery = searchQuery;
-        return AlertDialog(
-          title: const Text('Search Photos'),
-          content: TextField(
-            onChanged: (value) {
-              tempSearchQuery = value;
-            },
-            decoration:
-                const InputDecoration(hintText: 'Enter location or date'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  searchQuery = tempSearchQuery;
-                });
-                filterPhotos();
-                Navigator.pop(context);
-              },
-              child: const Text('Search'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Widget filterDropdown() {
@@ -160,9 +108,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
       itemBuilder: (context, index) {
         final photo = filteredPhotos[index];
         return GestureDetector(
-          onTap: () {
-            // open map of that loc
-          },
+          onTap: () {},
           child: Card(
             clipBehavior: Clip.antiAlias,
             child: Column(
@@ -211,12 +157,42 @@ class _GalleryScreenState extends State<GalleryScreen> {
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              showSearchDialog();
+              showDialog(
+                context: context,
+                builder: (context) {
+                  String tempSearchQuery = searchQuery;
+                  return AlertDialog(
+                    title: const Text('Search Photos'),
+                    content: TextField(
+                      onChanged: (value) {
+                        tempSearchQuery = value;
+                      },
+                      decoration: const InputDecoration(
+                        hintText: 'Enter location or date',
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            searchQuery = tempSearchQuery;
+                          });
+                          filterPhotos();
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Search'),
+                      ),
+                    ],
+                  );
+                },
+              );
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.camera_alt),
-            onPressed: navigateToCamera,
           ),
         ],
       ),

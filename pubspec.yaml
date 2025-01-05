@@ -35,8 +35,13 @@ dependencies:
   path_provider: ^2.0.14
   geolocator: ^9.0.2
   geocoding: ^2.0.5
+  google_maps_flutter: ^2.1.1
   image_picker: ^0.8.7+4
-  permission_handler: ^10.3.0
+  permission_handler: ^10.4.5
+  shared_preferences: ^2.1.1
+  
+ 
+
 
 
 
