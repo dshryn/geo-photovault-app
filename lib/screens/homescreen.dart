@@ -15,7 +15,7 @@ class HomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              'GeoTag Cam',
+              'Geo-PhotoVault',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 22,
