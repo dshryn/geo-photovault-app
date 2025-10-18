@@ -1,4 +1,4 @@
-# geotag
+# geo-photovault
 
 A new Flutter project.
 
